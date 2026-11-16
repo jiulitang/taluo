@@ -344,6 +344,24 @@
       *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
     }
 
+
+    .deck-toolbar { display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--text-sub);margin-top:18px; }
+    .fan-container { display:flex;gap:0;overflow-x:auto;overflow-y:hidden;padding:30px 20px 22px;scroll-snap-type:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;scrollbar-width:none;cursor:grab;user-select:none;min-height:208px;isolation:isolate; }
+    .fan-container::-webkit-scrollbar {display:none;}
+    .fan-container.is-dragging {cursor:grabbing;}
+    .fan-card { appearance:none;flex:0 0 100px;width:100px;height:152px;aspect-ratio:auto;margin:0 -70px 0 0;padding:0;border-radius:10px;box-shadow:-3px 3px 8px #17112332;transform:none!important;transition:translate .2s ease,box-shadow .2s ease;position:relative;touch-action:pan-x pan-y; }
+    .fan-card:last-child {margin-right:0;}
+    .fan-index {position:absolute;bottom:7px;left:5px;width:20px;font-size:9px;line-height:17px;border-radius:8px;color:#f5e4b9;background:#171123c9;font-family:system-ui;}
+    @media(hover:hover){.fan-card:hover{translate:0 -16px;z-index:2;box-shadow:0 14px 20px #17112340;}}
+    .fan-card:focus-visible{translate:0 -16px;z-index:3;}
+    .is-dragging .fan-card{translate:none;pointer-events:none;}
+    .deck-controls{display:flex;align-items:center;gap:12px;}
+    .deck-controls input{flex:1;width:0;margin:0;padding:0;accent-color:var(--gold);cursor:pointer;}
+    .deck-controls button{min-width:38px;}
+    .deck-hint{font-size:11px;line-height:1.6;color:var(--text-sub);margin:10px 0 0;}
+    .tarot-front-art{background-position:center;background-size:contain;background-repeat:no-repeat;}
+    .tarot-front-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;}
+
   </style>
 </head>
 <body>
@@ -367,6 +385,10 @@
     <button class="nav-item" onclick="switchTab('settings')" id="tab-settings">⚙️<span>设置</span></button>
   </nav>
 
+  <script src="artwork.js"></script>
+  <script src="worldbook-data.js"></script>
+  <script src="worldbook.js"></script>
+  <script src="deck.js"></script>
   <script>
     const DECK_STYLES = [
       { id: "MORAVIA", name: "莫拉维亚·穆夏" },
@@ -416,7 +438,7 @@
           kwUp: m[3], kwRev: m[4],
           meaningUp: `【${m[1]} · 正位】${m[3]}。圣光正在照亮你的前路，保持纯净直觉与温柔行动。`,
           meaningRev: `【${m[1]} · 逆位】${m[4]}。请放慢脚步倾听内在声音，温柔调整失衡的能量。`,
-          img: "assets/img_deck_mucha_major.jpg"
+          img: cardArt(idx, "assets/img_deck_mucha_major.jpg")
         });
       });
       let idCounter = 22;
@@ -429,7 +451,7 @@
             kwRev: `${s.zh}内省、节奏调整、温和转化`,
             meaningUp: `【${s.zh}${rName} · 正位】展现${s.zh}元素的清澈流动与积极创造力。`,
             meaningRev: `【${s.zh}${rName} · 逆位】提示在${s.zh}领域回收分散的精力，回归内在平衡。`,
-            img: s.img
+            img: cardArt(idCounter-1, s.img)
           });
         });
       });
@@ -458,6 +480,8 @@
       question: "",
       selectedSpreadId: "time_flow",
       drawnSlots: [],
+      remainingDeck: [],
+      deckScroll: 0,
       spreadAiText: "",
       isBusy: false,
       chatMessages: [
@@ -467,6 +491,8 @@
         name: "小冰",
         prompt: "你是圣光塔罗占卜师小冰，温柔圣洁、富有洞见，请结合牌位、正逆位与世界书给出温暖详细的解析与建议。"
       },
+      lastReferences: [],
+      disabledWorldbook: JSON.parse(localStorage.getItem("tarot_wb_disabled_v1") || "[]"),
       worldbook: JSON.parse(localStorage.getItem("tarot_wb_v1") || "null") || [
         { title: "圣光解牌核心准则", content: "塔罗是映照内在能量与可能性的圣镜，逆位代表能量内化或待转化。" }
       ],
@@ -478,6 +504,10 @@
         statusMsg: ""
       }
     };
+
+    for (const card of state.cards) {
+      if (/^assets\/(img_deck_|cards\/card-)/.test(card.img)) card.img = cardArt(card.id, card.img);
+    }
 
     if (state.persona.name === "塞拉菲娜 · Seraphina") {
       state.persona = { name: "小冰", prompt: "你是塔罗占卜师小冰，温柔、清晰、富有洞见。请结合牌位、正逆位与世界书给出温暖详细的解析与可行建议。" };
@@ -565,7 +595,7 @@
     async function aiDailyReading() {
       if (!state.dailyCard) return;
       const d = state.dailyCard;
-      const wbText = state.worldbook.map(w => `【${w.title}】${w.content}`).join("\n");
+      const wbText = getWorldbookContext(d.card.nameZh + " " + (d.isReversed ? "逆位" : "正位"), [d.card]);
       state.isBusy = true; render();
       try {
         state.dailyAiText = await callOpenAi([
@@ -601,6 +631,8 @@
       if (!state.question.trim()) state.question = "探索此刻生命流动与圣光指引";
       state.divPhase = "SHUFFLING";
       state.drawnSlots = Array(sp.count).fill(null);
+      state.remainingDeck = shuffleCards(state.cards);
+      state.deckScroll = 0;
       state.spreadAiText = "";
       render();
       setTimeout(() => {
@@ -611,20 +643,20 @@
       }, 2200);
     }
 
-    function drawNextSpreadCard() {
+    function drawNextSpreadCard(position) {
       const idx = state.drawnSlots.findIndex(x => x === null);
-      if (idx < 0) return;
-      const used = new Set(state.drawnSlots.filter(Boolean).map(x => x.card.id));
-      const pool = state.cards.filter(c => !used.has(c.id));
-      const picked = pool[Math.floor(Math.random() * pool.length)];
-      state.drawnSlots[idx] = { card: picked, isReversed: Math.random() < 0.3 };
+      if (idx < 0 || !Number.isInteger(position) || position < 0 || position >= state.remainingDeck.length) return;
+      state.deckScroll = document.querySelector('.fan-container')?.scrollLeft || state.deckScroll;
+      const [selected] = state.remainingDeck.splice(position, 1);
+      const picked = state.cards.find(card => card.id === selected.cardId);
+      state.drawnSlots[idx] = { card: picked, isReversed: selected.isReversed };
       render();
-      document.querySelectorAll(".spread-slots-grid .tarot-stage-3d")[idx]?.classList.add("reveal-once");
+      document.querySelectorAll('.spread-slots-grid .tarot-stage-3d')[idx]?.classList.add('reveal-once');
     }
 
     async function aiInterpretSpread() {
       const sp = SPREADS.find(s => s.id === state.selectedSpreadId) || SPREADS[1];
-      const wbText = state.worldbook.map(w => `【${w.title}】${w.content}`).join("\n");
+      const wbText = getWorldbookContext(state.question+" "+state.drawnSlots.filter(Boolean).map(s=>s.card.nameZh+" "+(s.isReversed?"逆位":"正位")).join(" "), state.drawnSlots.filter(Boolean).map(s=>s.card));
       const detail = state.drawnSlots.map((slot, i) =>
         `${i + 1}. ${sp.positions[i]}：${slot.card.nameZh}（${slot.isReversed ? "逆位" : "正位"}）- ${slot.isReversed ? slot.card.meaningRev : slot.card.meaningUp}`
       ).join("\n");
@@ -722,7 +754,7 @@
               <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;">
                 <span>${c.roman}</span><span>${rev ? '逆位' : '正位'}</span>
               </div>
-              <div class="tarot-front-art ${rev ? 'reversed' : ''}" style="background-image:url('${c.img}')"></div>
+              <div class="tarot-front-art ${rev ? 'reversed' : ''}"><img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.nameZh)}牌面" loading="${compact ? 'lazy' : 'eager'}" decoding="async" draggable="false"></div>
               <div style="text-align:center;font-size:${compact ? '12px' : '15px'};font-weight:600;">${c.nameZh}</div>
             </div>
           </div>
@@ -813,7 +845,7 @@
       render();
     }
 
-    function render() {
+    function renderPage() {
       const root = document.getElementById("app");
       if (state.tab === "sanctuary") {
         const d = state.dailyCard;
@@ -838,7 +870,7 @@
                 <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">关键词：${d.isReversed ? d.card.kwRev : d.card.kwUp}</div>
                 <div style="font-size:14px;line-height:1.6;">${d.isReversed ? d.card.meaningRev : d.card.meaningUp}</div>
               </div>
-              ${state.dailyAiText ? `<div style="text-align:left;margin-top:10px;padding:14px;border-radius:16px;border:1px solid var(--gold-light);white-space:pre-wrap;font-size:14px;line-height:1.65;">${state.dailyAiText}</div>` : ''}
+              ${state.dailyAiText ? `<div style="text-align:left;margin-top:10px;padding:14px;border-radius:16px;border:1px solid var(--gold-light);white-space:pre-wrap;font-size:14px;line-height:1.65;">${escapeHtml(state.dailyAiText)}</div>${worldbookReferences()}` : ''}
               <div class="btn-row" style="margin-top:12px;">
                 <button class="btn btn-outline" onclick="drawDaily()">重新抽牌</button>
                 <button class="btn" onclick="aiDailyReading()">${state.isBusy ? '解读中...' : '✨ AI 深度解读'}</button>
@@ -891,16 +923,19 @@
               <div style="font-size:13px;color:var(--text-sub);">问卜：「${state.question}」 · 牌阵：${sp.name} (${drawnCount}/${sp.count})</div>
               ${!allDrawn ? `
                 <div style="margin-top:12px;text-align:center;">
-                  <div style="font-weight:600;color:var(--gold);font-size:14px;">左右滑动星轨牌扇 · 点击任意卡牌抽出第 ${drawnCount + 1}/${sp.count} 张（${sp.positions[drawnCount]}）</div>
-                  <div class="fan-container">
-                    ${Array.from({length: 18}).map((_, i) => `<div class="fan-card" role="button" tabindex="0" aria-label="抽取圣牌 ${i+1}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="drawNextSpreadCard()" title="抽取圣牌 #${i+1}"></div>`).join("")}
+                  <div style="font-weight:600;color:var(--gold);font-size:14px;">滑动牌组，轻触选牌 · 第 ${drawnCount + 1}/${sp.count} 张（${sp.positions[drawnCount]}）</div>
+                  <div class="deck-toolbar"><span>整副 78 张 · 剩余 <strong>${state.remainingDeck.length}</strong> 张</span><span id="deck-visible-position"></span></div>
+                  <div class="fan-container" aria-label="滑动选择剩余的 ${state.remainingDeck.length} 张牌">
+                    ${state.remainingDeck.map((_, i) => `<button type="button" class="fan-card" aria-label="抽取第 ${i+1} 个位置的牌" onclick="drawNextSpreadCard(${i})"><span class="fan-index">${i+1}</span></button>`).join("")}
                   </div>
+                  <div class="deck-controls"><button class="btn btn-outline btn-sm" aria-label="向左浏览牌组" onclick="moveDeck(-1)">←</button><input type="range" id="deck-position" min="0" max="100" step="0.1" value="0" aria-label="快速浏览整副牌" oninput="seekDeck(this.value)"><button class="btn btn-outline btn-sm" aria-label="向右浏览牌组" onclick="moveDeck(1)">→</button></div>
+                  <p class="deck-hint">轻轻滑过牌背，选一张有感觉的牌 · 拖动下方滑杆可快速浏览整副牌</p>
                 </div>
               ` : ''}
               <div class="spread-slots-grid" style="margin-top:12px;">
                 ${sp.positions.map((posTitle, i) => `
                   <div style="text-align:center;">
-                    ${renderCard3D(state.drawnSlots[i], Boolean(state.drawnSlots[i]), true, `${i+1}. ${posTitle}`, "drawNextSpreadCard()")}
+                    ${renderCard3D(state.drawnSlots[i], Boolean(state.drawnSlots[i]), true, `${i+1}. ${posTitle}`, "")}
                     <div style="font-size:12px;font-weight:600;">${i+1}. ${posTitle}</div>
                   </div>
                 `).join("")}
@@ -911,7 +946,7 @@
                   <button class="btn btn-outline" onclick="exportSpreadPoster()">🖼️ 保存携问题长图</button>
                 </div>
               ` : ''}
-              ${state.spreadAiText ? `<div style="margin-top:14px;padding:14px;border-radius:16px;background:var(--gold-soft);white-space:pre-wrap;font-size:14px;line-height:1.65;">${state.spreadAiText}</div>` : ''}
+              ${state.spreadAiText ? `<div style="margin-top:14px;padding:14px;border-radius:16px;background:var(--gold-soft);white-space:pre-wrap;font-size:14px;line-height:1.65;">${escapeHtml(state.spreadAiText)}</div>${worldbookReferences()}` : ''}
             </div>`;
         }
       } else if (state.tab === "mentor") {
@@ -921,7 +956,7 @@
               <img src="assets/img_mentor_seraphina.jpg" class="avatar-circle" alt="占卜师小冰" />
               <div style="flex:1;">
                 <h3 class="section-title" style="margin:0;">${state.persona.name}</h3>
-                <div style="font-size:12px;color:var(--text-sub);">自动挂载 ${state.worldbook.length} 份世界书 · 支持人设卡</div>
+                <div style="font-size:12px;color:var(--text-sub);">已连接 ${allWorldbookEntries().filter(w=>w.enabled).length} 条参考 · 按问题选用</div>
               </div>
               <button class="btn btn-outline btn-sm" onclick="togglePersonaEditor()">人设卡</button>
             </div>
@@ -933,8 +968,9 @@
               <button class="btn btn-sm" onclick="saveLocal();togglePersonaEditor();render()">保存人设卡</button>
             </div>
             <div style="max-height:360px;overflow-y:auto;padding:8px 0;">
-              ${state.chatMessages.map(m => `<div class="chat-bubble ${m.role==='user'?'chat-user':'chat-ai'}">${m.content}</div>`).join("")}
+              ${state.chatMessages.map(m => `<div class="chat-bubble ${m.role==='user'?'chat-user':'chat-ai'}">${escapeHtml(m.content)}</div>`).join("")}
             </div>
+            ${worldbookReferences()}
             <div style="display:flex;gap:8px;margin-top:8px;">
               <input id="chat-in" placeholder="向塔罗导师倾诉你的困惑..." style="margin:0;" onkeydown="if(event.key==='Enter')sendChat()" />
               <button class="btn" onclick="sendChat()">发送</button>
@@ -945,7 +981,7 @@
         root.innerHTML = `
           <div class="card-box">
             <h3 class="section-title">唯美卡面全集 (78张) & 牌义数据库</h3>
-            <p class="sub-text">点击任意卡牌即可查看或调用 AI 实时更新牌义数据库</p>
+            <p class="sub-text">点击卡牌查看牌义；下方可搜索小冰的世界书。原创大阿卡纳已制作 14/22 张。</p>
             <div class="chip-row">
               <button class="chip ${state.codexSuit==='MAJOR'?'active':''}" onclick="state.codexSuit='MAJOR';render()">大阿卡那 (22)</button>
               <button class="chip ${state.codexSuit==='WANDS'?'active':''}" onclick="state.codexSuit='WANDS';render()">权杖 (14)</button>
@@ -962,25 +998,7 @@
               `).join("")}
             </div>
           </div>
-          <div class="card-box">
-            <h3 class="section-title">塔罗世界书资料库 (${state.worldbook.length})</h3>
-            <p class="sub-text">上传 .txt / .md / .json 资料文件或手动录入，AI 解牌与导师聊天会自动引用</p>
-            <div class="btn-row" style="margin-bottom:12px;">
-              <label class="btn btn-outline" style="cursor:pointer;">
-                📄 上传文件<input type="file" accept=".txt,.md,.json,.csv" style="display:none;" onchange="handleWorldbookUpload(this)" />
-              </label>
-              <button class="btn" onclick="addWorldbookEntry()">＋ 手动录入资料</button>
-            </div>
-            ${state.worldbook.map((w, i) => `
-              <div style="padding:11px;border-radius:14px;border:1px solid var(--gold-light);margin-bottom:8px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;font-weight:600;color:var(--gold);font-size:13px;">
-                  <span>${w.title}</span>
-                  <button class="btn btn-outline btn-sm" onclick="state.worldbook.splice(${i},1);saveLocal();render()">删除</button>
-                </div>
-                <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">${w.content.slice(0, 120)}${w.content.length>120?'...':''}</div>
-              </div>
-            `).join("")}
-          </div>`;
+          ${renderWorldbookPanel()}`;
       } else if (state.tab === "settings") {
         root.innerHTML = `
           <div class="card-box">
@@ -1026,7 +1044,7 @@
       input.value = "";
       render();
       try {
-        const wbText = state.worldbook.map(w => `【${w.title}】${w.content}`).join("\n");
+        const wbText = getWorldbookContext(text, []);
         const reply = await callOpenAi([
           { role: "system", content: state.persona.prompt + "\n世界书资料：\n" + wbText },
           ...state.chatMessages.slice(-10)

@@ -1,0 +1,17 @@
+const CARD_ARTWORK = {
+  "0": "assets/cards/card-00.jpg",
+  "1": "assets/cards/card-01.jpg",
+  "2": "assets/cards/card-02.jpg",
+  "3": "assets/cards/card-03.jpg",
+  "4": "assets/cards/card-04.jpg",
+  "5": "assets/cards/card-05.jpg",
+  "6": "assets/cards/card-06.jpg",
+  "7": "assets/cards/card-07.jpg",
+  "8": "assets/cards/card-08.jpg",
+  "9": "assets/cards/card-09.jpg",
+  "10": "assets/cards/card-10.jpg",
+  "11": "assets/cards/card-11.jpg",
+  "12": "assets/cards/card-12.jpg",
+  "14": "assets/cards/card-14.jpg"
+};
+function cardArt(id,fallback){return CARD_ARTWORK[id]||fallback;}
