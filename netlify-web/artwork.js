@@ -12,8 +12,14 @@ const CARD_ARTWORK = {
   "10": "assets/cards/card-10.jpg",
   "11": "assets/cards/card-11.jpg",
   "12": "assets/cards/card-12.jpg",
+  "13": "assets/cards/card-13.jpg",
   "14": "assets/cards/card-14.jpg",
+  "15": "assets/cards/card-15.jpg",
+  "16": "assets/cards/card-16.jpg",
+  "17": "assets/cards/card-17.jpg",
   "18": "assets/cards/card-18.jpg",
-  "19": "assets/cards/card-19.jpg"
+  "19": "assets/cards/card-19.jpg",
+  "20": "assets/cards/card-20.jpg",
+  "21": "assets/cards/card-21.jpg"
 };
 function cardArt(id,fallback){return CARD_ARTWORK[id]||fallback;}
