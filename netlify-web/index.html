@@ -362,6 +362,19 @@
     .tarot-front-art{background-position:center;background-size:contain;background-repeat:no-repeat;}
     .tarot-front-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;}
 
+
+    /* Artwork fills the complete face; labels float over the image. */
+    .tarot-front { padding:0; display:block; }
+    .tarot-front .tarot-front-art { position:absolute;inset:0;margin:0;border:0;border-radius:0;filter:none; }
+    .tarot-front-art img { object-fit:cover; }
+    .tarot-card-meta { position:absolute;top:7px;left:7px;right:7px;z-index:2;display:flex;justify-content:space-between;gap:8px;pointer-events:none; }
+    .tarot-card-meta span { font-family:inherit;font-size:10px;font-weight:600;line-height:1.6;color:#fff8e6;background:rgba(31,23,39,.68);border:1px solid #ead19a66;border-radius:6px;padding:1px 5px; }
+    .tarot-card-name { position:absolute;bottom:0;left:0;right:0;z-index:2;color:#fff8e6;text-align:center;font-size:16px;font-weight:600;letter-spacing:2px;padding:24px 5px 10px;background:linear-gradient(transparent,rgba(24,17,35,.88));pointer-events:none; }
+    .compact .tarot-card-name {font-size:13px;padding:20px 4px 7px;letter-spacing:1px;}
+    .compact .tarot-card-meta {top:5px;left:5px;right:5px;}
+    .compact .tarot-card-meta span {font-size:9px;padding:1px 4px;}
+    .worldbook-pack {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--gold-light);}
+    .worldbook-pack:last-child{border-bottom:0;}
   </style>
 </head>
 <body>
@@ -469,7 +482,7 @@
     const state = {
       tab: "sanctuary",
       theme: localStorage.getItem("tarot_theme_v1") || "light",
-      deckStyle: localStorage.getItem("tarot_style_v1") || "MORAVIA",
+      deckStyle: "MORAVIA",
       cards: JSON.parse(localStorage.getItem("tarot_cards_v1") || "null") || buildDefaultDeck(),
       codexSuit: "MAJOR",
       editingCardId: null,
@@ -492,6 +505,7 @@
         prompt: "你是圣光塔罗占卜师小冰，温柔圣洁、富有洞见，请结合牌位、正逆位与世界书给出温暖详细的解析与建议。"
       },
       lastReferences: [],
+      disabledWorldbookPacks: JSON.parse(localStorage.getItem("tarot_wb_packs_disabled_v1") || "[]"),
       disabledWorldbook: JSON.parse(localStorage.getItem("tarot_wb_disabled_v1") || "[]"),
       worldbook: JSON.parse(localStorage.getItem("tarot_wb_v1") || "null") || [
         { title: "圣光解牌核心准则", content: "塔罗是映照内在能量与可能性的圣镜，逆位代表能量内化或待转化。" }
@@ -751,11 +765,11 @@
           <div class="tarot-inner-3d">
             <div class="tarot-face tarot-back"><span class="tarot-back-caption">${slotLabel || '轻触启封'}</span></div>
             <div class="tarot-face tarot-front">
-              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;">
+              <div class="tarot-card-meta">
                 <span>${c.roman}</span><span>${rev ? '逆位' : '正位'}</span>
               </div>
               <div class="tarot-front-art ${rev ? 'reversed' : ''}"><img src="${escapeHtml(c.img)}" alt="${escapeHtml(c.nameZh)}牌面" loading="${compact ? 'lazy' : 'eager'}" decoding="async" draggable="false"></div>
-              <div style="text-align:center;font-size:${compact ? '12px' : '15px'};font-weight:600;">${c.nameZh}</div>
+              <div class="tarot-card-name">${escapeHtml(c.nameZh)}</div>
             </div>
           </div>
         </div>`;
@@ -857,12 +871,9 @@
               <div style="font-size:13px;opacity:0.9;">静心澄意 · 倾听今日宇宙与灵魂的微光启示</div>
             </div>
           </div>
-          <div class="chip-row">
-            ${DECK_STYLES.map(st => `<button class="chip ${state.deckStyle===st.id?'active':''}" onclick="setDeckStyle('${st.id}')">${st.name}</button>`).join("")}
-          </div>
           <div class="card-box" style="text-align:center;">
-            <h3 class="section-title">每日圣光抽牌 (3D 仪式翻牌)</h3>
-            <p class="sub-text">${d ? '轻触卡面可再次翻转 · 下方查看今日详尽解析' : '轻触下方圣牌开启今日 3D 翻牌仪式'}</p>
+            <h3 class="section-title">每日圣光抽牌</h3>
+            <p class="sub-text">${d ? '轻触卡面可再次翻转 · 下方查看今日详尽解析' : '轻触卡面，看看今天的启示'}</p>
             ${renderCard3D(d, state.dailyRevealed, false, "轻触开启今日圣牌", d ? "toggleDailyCard(this)" : "drawDaily()")}
             ${d ? `
               <div style="text-align:left;background:var(--gold-soft);padding:14px;border-radius:16px;margin-top:12px;">
@@ -956,7 +967,7 @@
               <img src="assets/img_mentor_seraphina.jpg" class="avatar-circle" alt="占卜师小冰" />
               <div style="flex:1;">
                 <h3 class="section-title" style="margin:0;">${state.persona.name}</h3>
-                <div style="font-size:12px;color:var(--text-sub);">已连接 ${allWorldbookEntries().filter(w=>w.enabled).length} 条参考 · 按问题选用</div>
+                <div style="font-size:12px;color:var(--text-sub);">已连接 ${activeWorldbookPackCount()} 份世界书</div>
               </div>
               <button class="btn btn-outline btn-sm" onclick="togglePersonaEditor()">人设卡</button>
             </div>
@@ -981,7 +992,7 @@
         root.innerHTML = `
           <div class="card-box">
             <h3 class="section-title">唯美卡面全集 (78张) & 牌义数据库</h3>
-            <p class="sub-text">点击卡牌查看牌义；下方可搜索小冰的世界书。原创大阿卡纳已制作 14/22 张。</p>
+            <p class="sub-text">点击卡牌查看牌义</p>
             <div class="chip-row">
               <button class="chip ${state.codexSuit==='MAJOR'?'active':''}" onclick="state.codexSuit='MAJOR';render()">大阿卡那 (22)</button>
               <button class="chip ${state.codexSuit==='WANDS'?'active':''}" onclick="state.codexSuit='WANDS';render()">权杖 (14)</button>
@@ -993,7 +1004,6 @@
               ${filtered.map(c => `
                 <div style="text-align:center;">
                   ${renderCard3D({card: c, isReversed: false}, true, true, c.nameZh, `openCardEditor(${c.id})`)}
-                  <div style="font-size:11px;color:var(--text-sub);">${c.roman} · ${c.nameZh}</div>
                 </div>
               `).join("")}
             </div>
@@ -1022,12 +1032,7 @@
             <button class="btn" style="width:100%;" onclick="saveLocal();alert('设置已保存生效！')">保存生效</button>
             ${state.api.statusMsg ? `<div style="margin-top:10px;font-size:13px;color:var(--gold);">${state.api.statusMsg}</div>` : ''}
           </div>
-          <div class="card-box">
-            <h3 class="section-title">当前卡面画风</h3>
-            <div class="chip-row">
-              ${DECK_STYLES.map(st => `<button class="chip ${state.deckStyle===st.id?'active':''}" onclick="setDeckStyle('${st.id}')">${st.name}</button>`).join("")}
-            </div>
-          </div>`;
+`;
       }
     }
 
