@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>圣光塔罗 · Aurelia Tarot Sanctuary</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -322,6 +322,28 @@
       object-fit: cover;
       border: 1.5px solid var(--gold);
     }
+
+    /* Smooth card turns, including Safari and reduced-motion preferences. */
+    .tarot-stage-3d { perspective: 1400px; touch-action: manipulation; }
+    .tarot-inner-3d { transition: transform .78s cubic-bezier(.2,.75,.2,1); }
+    .tarot-face { -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+    .tarot-front { position: absolute; transform: rotateY(180deg) translateZ(1px); }
+    .tarot-back { transform: translateZ(1px); }
+    .tarot-stage-3d:focus-visible, .fan-card:focus-visible { outline: 3px solid var(--gold); outline-offset: 6px; }
+    .tarot-stage-3d.reveal-once .tarot-inner-3d { animation: revealCard .78s cubic-bezier(.2,.75,.2,1) both; }
+    @keyframes revealCard { from { transform: rotateY(0); } to { transform: rotateY(180deg); } }
+    .shuffle-arena { perspective: 900px; }
+    .shuffle-card { backface-visibility: hidden; }
+    @keyframes orbitShuffle {
+      0%,100% { transform: translate3d(0,0,0) rotateZ(0); }
+      25% { transform: translate3d(-48px,-8px,30px) rotateZ(-12deg) rotateY(-18deg); }
+      50% { transform: translate3d(48px,0,15px) rotateZ(12deg) rotateY(18deg); }
+      75% { transform: translate3d(0,-20px,35px) rotateZ(-5deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+
   </style>
 </head>
 <body>
@@ -439,11 +461,11 @@
       spreadAiText: "",
       isBusy: false,
       chatMessages: [
-        { role: "assistant", content: "愿圣光与宁静常伴你左右。我是大祭司塞拉菲娜，请将你的疑问或抽出的牌面告诉我。" }
+        { role: "assistant", content: "愿圣光与宁静常伴你左右。我是占卜师小冰，请将你的疑问或抽出的牌面告诉我。" }
       ],
       persona: JSON.parse(localStorage.getItem("tarot_persona_v1") || "null") || {
-        name: "塞拉菲娜 · Seraphina",
-        prompt: "你是圣光塔罗大祭司塞拉菲娜，温柔圣洁、富有洞见，请结合牌位、正逆位与世界书给出温暖详细的解析与建议。"
+        name: "小冰",
+        prompt: "你是圣光塔罗占卜师小冰，温柔圣洁、富有洞见，请结合牌位、正逆位与世界书给出温暖详细的解析与建议。"
       },
       worldbook: JSON.parse(localStorage.getItem("tarot_wb_v1") || "null") || [
         { title: "圣光解牌核心准则", content: "塔罗是映照内在能量与可能性的圣镜，逆位代表能量内化或待转化。" }
@@ -456,6 +478,12 @@
         statusMsg: ""
       }
     };
+
+    if (state.persona.name === "塞拉菲娜 · Seraphina") {
+      state.persona = { name: "小冰", prompt: "你是塔罗占卜师小冰，温柔、清晰、富有洞见。请结合牌位、正逆位与世界书给出温暖详细的解析与可行建议。" };
+      localStorage.setItem("tarot_persona_v1", JSON.stringify(state.persona));
+    }
+    state.chatMessages[0].content = "你好，我是" + state.persona.name + "。可以告诉我你的困惑，也可以一起看看你抽到的牌。";
 
     if (state.theme === "dark") document.documentElement.setAttribute("data-theme", "dark");
 
@@ -518,13 +546,20 @@
       render();
     }
 
+    function toggleDailyCard(element) {
+      state.dailyRevealed = !state.dailyRevealed;
+      element.classList.toggle("revealed", state.dailyRevealed);
+    }
     function drawDaily() {
       const c = state.cards[Math.floor(Math.random() * state.cards.length)];
       state.dailyCard = { card: c, isReversed: Math.random() < 0.3 };
       state.dailyRevealed = false;
       state.dailyAiText = "";
       render();
-      setTimeout(() => { state.dailyRevealed = true; render(); }, 60);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        state.dailyRevealed = true;
+        if (state.tab === "sanctuary") document.querySelector(".tarot-stage-3d")?.classList.add("revealed");
+      }));
     }
 
     async function aiDailyReading() {
@@ -670,7 +705,7 @@
       const deckCls = `deck-${state.deckStyle}`;
       if (!cardObj) {
         return `
-          <div class="tarot-stage-3d ${deckCls} ${compact ? 'compact' : ''}" onclick="${onClickJs}">
+          <div class="tarot-stage-3d ${deckCls} ${compact ? 'compact' : ''}" role="button" tabindex="0" aria-label="${slotLabel || '翻转塔罗牌'}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="${onClickJs}">
             <div class="tarot-inner-3d">
               <div class="tarot-face tarot-back"><span class="tarot-back-caption">${slotLabel || '轻触抽牌'}</span></div>
             </div>
@@ -679,7 +714,7 @@
       const c = cardObj.card;
       const rev = cardObj.isReversed;
       return `
-        <div class="tarot-stage-3d ${deckCls} ${compact ? 'compact' : ''} ${isRevealed ? 'revealed' : ''}" onclick="${onClickJs}">
+        <div class="tarot-stage-3d ${deckCls} ${compact ? 'compact' : ''} ${isRevealed ? 'revealed' : ''}" role="button" tabindex="0" aria-label="${slotLabel || '翻转塔罗牌'}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="${onClickJs}">
           <div class="tarot-inner-3d">
             <div class="tarot-face tarot-back"><span class="tarot-back-caption">${slotLabel || '轻触启封'}</span></div>
             <div class="tarot-face tarot-front">
@@ -795,7 +830,7 @@
           <div class="card-box" style="text-align:center;">
             <h3 class="section-title">每日圣光抽牌 (3D 仪式翻牌)</h3>
             <p class="sub-text">${d ? '轻触卡面可再次翻转 · 下方查看今日详尽解析' : '轻触下方圣牌开启今日 3D 翻牌仪式'}</p>
-            ${renderCard3D(d, state.dailyRevealed, false, "轻触开启今日圣牌", d ? "state.dailyRevealed=!state.dailyRevealed;render()" : "drawDaily()")}
+            ${renderCard3D(d, state.dailyRevealed, false, "轻触开启今日圣牌", d ? "toggleDailyCard(this)" : "drawDaily()")}
             ${d ? `
               <div style="text-align:left;background:var(--gold-soft);padding:14px;border-radius:16px;margin-top:12px;">
                 <div style="font-weight:600;color:var(--gold);margin-bottom:4px;">${d.card.roman} · ${d.card.nameZh} (${d.isReversed ? '逆位' : '正位'})</div>
@@ -882,7 +917,7 @@
         root.innerHTML = `
           <div class="card-box">
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-              <img src="assets/img_mentor_seraphina.jpg" class="avatar-circle" alt="Mentor" />
+              <img src="assets/img_mentor_seraphina.jpg" class="avatar-circle" alt="占卜师小冰" />
               <div style="flex:1;">
                 <h3 class="section-title" style="margin:0;">${state.persona.name}</h3>
                 <div style="font-size:12px;color:var(--text-sub);">自动挂载 ${state.worldbook.length} 份世界书 · 支持人设卡</div>
