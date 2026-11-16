@@ -12,6 +12,8 @@ const CARD_ARTWORK = {
   "10": "assets/cards/card-10.jpg",
   "11": "assets/cards/card-11.jpg",
   "12": "assets/cards/card-12.jpg",
-  "14": "assets/cards/card-14.jpg"
+  "14": "assets/cards/card-14.jpg",
+  "18": "assets/cards/card-18.jpg",
+  "19": "assets/cards/card-19.jpg"
 };
 function cardArt(id,fallback){return CARD_ARTWORK[id]||fallback;}
