@@ -1,0 +1,6 @@
+{
+  "name": "圣光塔罗",
+  "description": "唯美圣洁的AI塔罗占卜与每日抽牌应用，支持3D仪式感翻牌、自定义OpenAI接口、塔罗导师人设卡、世界书资料库及实时牌义更新。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

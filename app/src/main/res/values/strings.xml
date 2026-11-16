@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">圣光塔罗</string>
+    <string name="nav_sanctuary">圣殿</string>
+    <string name="nav_divination">占卜</string>
+    <string name="nav_mentor">导师</string>
+    <string name="nav_codex">圣典</string>
+    <string name="nav_settings">设置</string>
+</resources>

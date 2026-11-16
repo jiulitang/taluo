@@ -1,0 +1,32 @@
+package com.example.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+// Sacred Celestial Alabaster & Champagne Gold Palette (Light Sanctuary)
+val SanctuaryAlabaster = Color(0xFFFBF9F5)
+val SanctuaryParchment = Color(0xFFF3EDE2)
+val SanctuaryPearlCard = Color(0xFFFFFDF9)
+val SanctuaryIndigo = Color(0xFF2D2745)
+val SanctuaryTwilight = Color(0xFF6A6282)
+val SacredGold = Color(0xFFB88A38)
+val SacredGoldLight = Color(0xFFE7D3A3)
+val SacredGoldSoft = Color(0xFFF6EDD8)
+val CelestialMist = Color(0xFFEAEFF8)
+val CelestialBlue = Color(0xFF5D7AA6)
+val MysticAmethyst = Color(0xFF7B63A6)
+val MysticAmethystSoft = Color(0xFFEDE6F7)
+val RoseQuartz = Color(0xFFB56E7E)
+val SageBlessing = Color(0xFF4B8B71)
+val SanctuaryOutline = Color(0xFFE0D6C5)
+
+// Midnight Astral Sanctuary Palette (Dark Sanctuary)
+val MidnightVelvet = Color(0xFF131021)
+val MidnightTemple = Color(0xFF1C1830)
+val MidnightCard = Color(0xFF24203C)
+val MoonlitIvory = Color(0xFFF3EFE6)
+val MoonlitLavender = Color(0xFFB8B0CC)
+val LuminousGold = Color(0xFFE6C573)
+val LuminousGoldSoft = Color(0xFF3E341D)
+val MidnightBlueGlow = Color(0xFF8AAEE0)
+val MidnightAmethyst = Color(0xFFB79CED)
+val MidnightOutline = Color(0xFF3B3459)

@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>圣光塔罗 · Aurelia Tarot Sanctuary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:wght@600;700&family=Noto+Serif+SC:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #FBF9F5;
+      --surface: #FFFDF9;
+      --surface-2: #F3EDE2;
+      --text: #2D2745;
+      --text-sub: #6A6282;
+      --gold: #B88A38;
+      --gold-light: #E7D3A3;
+      --gold-soft: #F6EDD8;
+      --upright: #4B8B71;
+      --reversed: #B56E7E;
+    }
+    [data-theme="dark"] {
+      --bg: #131021;
+      --surface: #1C1830;
+      --surface-2: #24203C;
+      --text: #F3EFE6;
+      --text-sub: #B8B0CC;
+      --gold: #E6C573;
+      --gold-light: #7B6532;
+      --gold-soft: #3E341D;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Serif SC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding-bottom: 88px;
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+    .app-shell { max-width: 680px; margin: 0 auto; padding: 14px; }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 4px 2px;
+    }
+    .brand-title { font-family: 'Cinzel', serif; font-size: 15px; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+    .hero-banner {
+      position: relative;
+      height: 174px;
+      border-radius: 24px;
+      overflow: hidden;
+      background: url('assets/img_sanctuary_banner.jpg') center/cover no-repeat;
+      box-shadow: 0 10px 28px rgba(184,138,56,0.18);
+      display: flex;
+      align-items: flex-end;
+      padding: 18px;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    .hero-banner::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(20,16,36,0.15) 0%, rgba(20,16,36,0.84) 100%);
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero-title { font-family: 'Cinzel', serif; font-size: 23px; letter-spacing: 1px; margin: 2px 0; }
+    .card-box {
+      background: var(--surface);
+      border: 1px solid var(--gold-light);
+      border-radius: 22px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 18px rgba(45,39,69,0.05);
+    }
+    .section-title { font-family: "Noto Serif SC", serif; font-size: 18px; font-weight: 600; margin: 0 0 6px; }
+    .sub-text { font-size: 13px; color: var(--text-sub); margin: 0 0 12px; line-height: 1.5; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 14px;
+      padding: 11px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--gold);
+      background: var(--gold);
+      color: #fff;
+      transition: transform 0.15s ease, opacity 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-outline { background: transparent; color: var(--gold); }
+    .btn-sm { padding: 7px 12px; font-size: 12px; border-radius: 11px; }
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-row > * { flex: 1; min-width: 120px; }
+    input, textarea, select {
+      width: 100%;
+      padding: 11px 13px;
+      border-radius: 13px;
+      border: 1px solid var(--gold-light);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      margin-bottom: 10px;
+      font-family: inherit;
+    }
+    .chip-row { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; }
+    .chip {
+      white-space: nowrap;
+      padding: 6px 13px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid var(--gold-light);
+      background: var(--surface);
+      color: var(--text-sub);
+      cursor: pointer;
+    }
+    .chip.active { background: var(--gold-soft); color: var(--gold); border-color: var(--gold); font-weight: 600; }
+
+    /* 3D Tarot Card Flip */
+    .tarot-stage-3d {
+      perspective: 1150px;
+      width: 192px;
+      aspect-ratio: 0.66;
+      margin: 12px auto;
+      cursor: pointer;
+    }
+    .tarot-stage-3d.compact { width: 116px; margin: 4px auto; }
+    .tarot-inner-3d {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .tarot-stage-3d.revealed .tarot-inner-3d { transform: rotateY(180deg); }
+    .tarot-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 2px solid var(--gold);
+      box-shadow: 0 10px 24px rgba(184,138,56,0.28);
+    }
+    .tarot-back {
+      background: url('assets/img_card_back.jpg') center/cover no-repeat;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 10px;
+    }
+    .tarot-back-caption {
+      background: rgba(20,16,36,0.8);
+      color: #FFF6DC;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      border: 1px solid rgba(246,223,159,0.5);
+      text-align: center;
+    }
+    .tarot-front {
+      transform: rotateY(180deg);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px;
+      position: relative;
+    }
+    /* 4 Deck Styles */
+    .deck-MORAVIA .tarot-front { background: #FAF4E8; color: #3D3324; border-color: #C79A4B; }
+    .deck-MORAVIA .tarot-front-art { border-radius: 72px 72px 10px 10px; border-color: #C79A4B; }
+    .deck-CELESTIAL .tarot-front { background: #141224; color: #F5DFA6; border-color: #E5C158; }
+    .deck-CELESTIAL .tarot-front-art { border-radius: 16px; border: 1.5px solid #E5C158; filter: contrast(1.06) saturate(1.08); }
+    .deck-MARIA .tarot-front { background: #ECEAF6; color: #373056; border-color: #8A7BB5; }
+    .deck-MARIA .tarot-front-art { border-radius: 56px 56px 18px 18px; border-color: #8A7BB5; filter: hue-rotate(-14deg) saturate(0.95); }
+    .deck-CLASSICAL .tarot-front { background: #F5E6C4; color: #4A3416; border-color: #A67B2E; }
+    .deck-CLASSICAL .tarot-front-art { border-radius: 6px; border: 2px double #A67B2E; filter: sepia(0.22); }
+
+    .tarot-front-art {
+      flex: 1;
+      border: 1px solid var(--gold);
+      background-size: cover;
+      background-position: center;
+      position: relative;
+      overflow: hidden;
+      margin: 4px 0;
+    }
+    .tarot-front-art.reversed { transform: rotate(180deg); }
+
+    /* Sliding Curved Fan Deck & Shuffling Stage */
+    .fan-container {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 26px 18px;
+      scroll-snap-type: x mandatory;
+      align-items: center;
+    }
+    .fan-card {
+      flex: 0 0 86px;
+      aspect-ratio: 0.66;
+      border-radius: 13px;
+      background: url('assets/img_card_back.jpg') center/cover no-repeat;
+      border: 1.5px solid var(--gold);
+      scroll-snap-align: center;
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+      cursor: pointer;
+      position: relative;
+    }
+    .fan-card:nth-child(odd) { transform: rotate(-3deg) translateY(3px); }
+    .fan-card:nth-child(even) { transform: rotate(3deg) translateY(-3px); }
+    .fan-card:hover, .fan-card:active {
+      transform: translateY(-16px) scale(1.09) rotate(0deg);
+      box-shadow: 0 14px 26px rgba(184,138,56,0.48);
+      z-index: 2;
+    }
+    @keyframes orbitShuffle {
+      0% { transform: translateX(0) rotate(0deg); }
+      25% { transform: translateX(-62px) rotate(-15deg) scale(1.05); }
+      50% { transform: translateX(62px) rotate(15deg) scale(1.07); }
+      75% { transform: translateY(-22px) rotate(-9deg); }
+      100% { transform: translateX(0) rotate(0deg); }
+    }
+    .shuffle-arena {
+      height: 230px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .shuffle-card {
+      position: absolute;
+      width: 98px;
+      aspect-ratio: 0.66;
+      border-radius: 14px;
+      background: url('assets/img_card_back.jpg') center/cover no-repeat;
+      border: 2px solid var(--gold);
+      box-shadow: 0 8px 20px rgba(184,138,56,0.35);
+      animation: orbitShuffle 1.45s infinite ease-in-out;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--gold-light);
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+      z-index: 99;
+    }
+    .nav-item {
+      border: none;
+      background: none;
+      color: var(--text-sub);
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      padding: 4px 12px;
+      border-radius: 14px;
+    }
+    .nav-item.active { color: var(--gold); background: var(--gold-soft); font-weight: 600; }
+    .spread-slots-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+    }
+    .chat-bubble {
+      padding: 12px 15px;
+      border-radius: 18px;
+      margin-bottom: 10px;
+      max-width: 86%;
+      line-height: 1.55;
+      font-size: 14px;
+      white-space: pre-wrap;
+    }
+    .chat-user { background: var(--gold-soft); margin-left: auto; border: 1px solid var(--gold-light); }
+    .chat-ai { background: var(--surface); border: 1px solid var(--gold-light); }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+      gap: 12px;
+    }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 12, 28, 0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 200;
+    }
+    .modal-card {
+      background: var(--surface);
+      border: 1.5px solid var(--gold);
+      border-radius: 22px;
+      padding: 18px;
+      max-width: 500px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+    }
+    .avatar-circle {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid var(--gold);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <div class="top-bar">
+      <div class="brand-title">✦ AURELIA TAROT</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-outline btn-sm" onclick="toggleTheme()">🌓 昼夜</button>
+      </div>
+    </div>
+    <div id="app"></div>
+  </div>
+
+  <div id="modal-root"></div>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchTab('sanctuary')" id="tab-sanctuary">🌙<span>圣殿</span></button>
+    <button class="nav-item" onclick="switchTab('divination')" id="tab-divination">✨<span>占卜</span></button>
+    <button class="nav-item" onclick="switchTab('mentor')" id="tab-mentor">🕊️<span>导师</span></button>
+    <button class="nav-item" onclick="switchTab('codex')" id="tab-codex">📖<span>圣典</span></button>
+    <button class="nav-item" onclick="switchTab('settings')" id="tab-settings">⚙️<span>设置</span></button>
+  </nav>
+
+  <script>
+    const DECK_STYLES = [
+      { id: "MORAVIA", name: "莫拉维亚·穆夏" },
+      { id: "CELESTIAL", name: "星穹黑金" },
+      { id: "MARIA", name: "玛利亚之门" },
+      { id: "CLASSICAL", name: "古典圣殿" }
+    ];
+
+    const MAJOR_NAMES = [
+      ["0","愚者","The Fool","纯粹起点、信任宇宙、无畏探索","鲁莽冲动、逃避责任、犹豫停滞"],
+      ["I","魔术师","The Magician","显化创造、意志聚焦、四元素具足","才华分散、自我怀疑、能量空转"],
+      ["II","女祭司","The High Priestess","神圣直觉、静谧智慧、内在觉知","忽视直觉、表面浮躁、情绪封闭"],
+      ["III","皇后","The Empress","丰盛滋养、温柔创造、感官之美","过度付出、创作枯竭、忽略自我"],
+      ["IV","皇帝","The Emperor","神圣秩序、稳固结构、责任担当","刚愎自用、过度控制、缺乏规划"],
+      ["V","教皇","The Hierophant","灵性传承、圣殿指引、导师智慧","墨守成规、盲从教条、打破传统"],
+      ["VI","恋人","The Lovers","灵魂共鸣、真心抉择、和谐合一","犹豫不决、逃避选择、关系失衡"],
+      ["VII","战车","The Chariot","意志凯旋、乘风破浪、专注突破","方向迷失、急躁失控、精力分散"],
+      ["VIII","力量","Strength","以柔克刚、圣洁勇气、慈悲耐心","自我怀疑、情绪失控、疲惫脆弱"],
+      ["IX","隐士","The Hermit","提灯独行、内在明灯、深度沉淀","孤立封闭、逃避社交、迷失方向"],
+      ["X","命运之轮","Wheel of Fortune","神圣转折、机遇降临、顺势而为","抗拒变化、时机未至、反复循环"],
+      ["XI","正义","Justice","清明公正、因果平衡、理性契约","偏颇失衡、逃避因果、主观误判"],
+      ["XII","倒吊人","The Hanged Man","神圣停顿、换位觉醒、温柔臣服","无谓牺牲、钻牛角尖、拖延逃避"],
+      ["XIII","死神","Death","破茧蜕变、旧章落幕、黎明新生","抗拒告别、执着过往、害怕改变"],
+      ["XIV","节制","Temperance","圣水调和、黄金中道、疗愈平静","失衡焦虑、急功近利、情绪波动"],
+      ["XV","恶魔","The Devil","欲望觉察、破除执念、直面束缚","挣脱锁链、觉醒自由、卸下执念"],
+      ["XVI","高塔","The Tower","雷霆破妄、真相骤显、结构重塑","延迟崩塌、逃避真相、内化震荡"],
+      ["XVII","星星","The Star","圣光希望、灵魂疗愈、星辰庇佑","短暂迷茫、信心动摇、忽视恩典"],
+      ["XVIII","月亮","The Moon","潜意识海、梦境启示、穿越幽微","迷雾散去、真相大白、走出幻觉"],
+      ["XIX","太阳","The Sun","至高光明、纯粹喜悦、明朗成功","光芒暂隐、过度自信、延迟喜悦"],
+      ["XX","审判","Judgement","灵魂唤醒、恩典重生、使命召唤","自我苛责、错失召唤、犹豫逃避"],
+      ["XXI","世界","The World","圆满凯旋、万物合一、自在丰盛","临门一脚、尚未收尾、循环未竟"]
+    ];
+    const SUITS = [
+      { key: "WANDS", zh: "权杖", en: "Wands", img: "assets/img_deck_wands.jpg" },
+      { key: "CUPS", zh: "圣杯", en: "Cups", img: "assets/img_deck_cups.jpg" },
+      { key: "SWORDS", zh: "宝剑", en: "Swords", img: "assets/img_deck_swords.jpg" },
+      { key: "PENTACLES", zh: "星币", en: "Pentacles", img: "assets/img_deck_pentacles.jpg" }
+    ];
+    const RANKS = ["王牌","二","三","四","五","六","七","八","九","十","侍从","骑士","王后","国王"];
+    const ROMANS = ["I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV"];
+
+    function buildDefaultDeck() {
+      const deck = [];
+      MAJOR_NAMES.forEach((m, idx) => {
+        deck.push({
+          id: idx, roman: m[0], nameZh: m[1], nameEn: m[2], suit: "MAJOR",
+          kwUp: m[3], kwRev: m[4],
+          meaningUp: `【${m[1]} · 正位】${m[3]}。圣光正在照亮你的前路，保持纯净直觉与温柔行动。`,
+          meaningRev: `【${m[1]} · 逆位】${m[4]}。请放慢脚步倾听内在声音，温柔调整失衡的能量。`,
+          img: "assets/img_deck_mucha_major.jpg"
+        });
+      });
+      let idCounter = 22;
+      SUITS.forEach(s => {
+        RANKS.forEach((rName, rIdx) => {
+          deck.push({
+            id: idCounter++, roman: ROMANS[rIdx], nameZh: `${s.zh}${rName}`, nameEn: `${rName} of ${s.en}`,
+            suit: s.key,
+            kwUp: `${s.zh}启示、能量流动、阶段成长`,
+            kwRev: `${s.zh}内省、节奏调整、温和转化`,
+            meaningUp: `【${s.zh}${rName} · 正位】展现${s.zh}元素的清澈流动与积极创造力。`,
+            meaningRev: `【${s.zh}${rName} · 逆位】提示在${s.zh}领域回收分散的精力，回归内在平衡。`,
+            img: s.img
+          });
+        });
+      });
+      return deck;
+    }
+
+    const SPREADS = [
+      { id: "single", name: "圣光一牌", count: 1, desc: "聚焦当下最核心的能量与直接启示", positions: ["圣光核心启示"] },
+      { id: "time_flow", name: "圣杯三元 · 时间流", count: 3, desc: "观照过去成因、当下课题与未来趋势", positions: ["过去根源", "当下显化", "未来流向"] },
+      { id: "mind_body_spirit", name: "身心灵圣殿", count: 3, desc: "照见思绪、现实行动与高我灵魂的共振", positions: ["心智思绪", "现实行动", "灵性指引"] },
+      { id: "venus_love", name: "维纳斯之镜", count: 5, desc: "映照双方心意、羁绊课题与情感远景", positions: ["你的心境", "对方视角", "圣洁羁绊", "隐匿阻碍", "关系远景"] },
+      { id: "choice", name: "抉择之门", count: 5, desc: "对比人生岔路口两条道路的过程与归宿", positions: ["核心初心", "选择A·过程", "选择A·归宿", "选择B·过程", "选择B·归宿"] }
+    ];
+
+    const state = {
+      tab: "sanctuary",
+      theme: localStorage.getItem("tarot_theme_v1") || "light",
+      deckStyle: localStorage.getItem("tarot_style_v1") || "MORAVIA",
+      cards: JSON.parse(localStorage.getItem("tarot_cards_v1") || "null") || buildDefaultDeck(),
+      codexSuit: "MAJOR",
+      editingCardId: null,
+      dailyCard: null,
+      dailyRevealed: false,
+      dailyAiText: "",
+      divPhase: "SETUP",
+      question: "",
+      selectedSpreadId: "time_flow",
+      drawnSlots: [],
+      spreadAiText: "",
+      isBusy: false,
+      chatMessages: [
+        { role: "assistant", content: "愿圣光与宁静常伴你左右。我是大祭司塞拉菲娜，请将你的疑问或抽出的牌面告诉我。" }
+      ],
+      persona: JSON.parse(localStorage.getItem("tarot_persona_v1") || "null") || {
+        name: "塞拉菲娜 · Seraphina",
+        prompt: "你是圣光塔罗大祭司塞拉菲娜，温柔圣洁、富有洞见，请结合牌位、正逆位与世界书给出温暖详细的解析与建议。"
+      },
+      worldbook: JSON.parse(localStorage.getItem("tarot_wb_v1") || "null") || [
+        { title: "圣光解牌核心准则", content: "塔罗是映照内在能量与可能性的圣镜，逆位代表能量内化或待转化。" }
+      ],
+      api: JSON.parse(localStorage.getItem("tarot_api_v1") || "null") || {
+        baseUrl: "https://api.openai.com/v1",
+        apiKey: "",
+        modelName: "gpt-4o-mini",
+        models: [],
+        statusMsg: ""
+      }
+    };
+
+    if (state.theme === "dark") document.documentElement.setAttribute("data-theme", "dark");
+
+    function toggleTheme() {
+      state.theme = state.theme === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", state.theme === "dark" ? "dark" : "");
+      localStorage.setItem("tarot_theme_v1", state.theme);
+    }
+
+    function setDeckStyle(id) {
+      state.deckStyle = id;
+      localStorage.setItem("tarot_style_v1", id);
+      render();
+    }
+
+    function saveLocal() {
+      localStorage.setItem("tarot_cards_v1", JSON.stringify(state.cards));
+      localStorage.setItem("tarot_persona_v1", JSON.stringify(state.persona));
+      localStorage.setItem("tarot_wb_v1", JSON.stringify(state.worldbook));
+      localStorage.setItem("tarot_api_v1", JSON.stringify(state.api));
+    }
+
+    function normalizeBaseUrl(raw) {
+      let u = (raw || "").trim().replace(/\/+$/, "");
+      u = u.replace(/\/chat\/completions$/, "").replace(/\/models$/, "");
+      if (!/^https?:\/\//i.test(u)) u = "https://" + u;
+      if (!/\/v\d+($|\/)/.test(u)) u += "/v1";
+      return u;
+    }
+
+    async function callOpenAi(messages) {
+      if (!state.api.apiKey) {
+        alert("请先在「设置」页填写 OpenAI API Key 并点击保存生效");
+        switchTab("settings");
+        throw new Error("未配置 API Key");
+      }
+      const url = normalizeBaseUrl(state.api.baseUrl) + "/chat/completions";
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + state.api.apiKey.trim()
+        },
+        body: JSON.stringify({
+          model: state.api.modelName || "gpt-4o-mini",
+          messages,
+          temperature: 0.75
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error?.message || ("HTTP " + res.status));
+      return data.choices?.[0]?.message?.content || "";
+    }
+
+    function switchTab(t) {
+      state.tab = t;
+      document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+      const btn = document.getElementById("tab-" + t);
+      if (btn) btn.classList.add("active");
+      render();
+    }
+
+    function drawDaily() {
+      const c = state.cards[Math.floor(Math.random() * state.cards.length)];
+      state.dailyCard = { card: c, isReversed: Math.random() < 0.3 };
+      state.dailyRevealed = false;
+      state.dailyAiText = "";
+      render();
+      setTimeout(() => { state.dailyRevealed = true; render(); }, 60);
+    }
+
+    async function aiDailyReading() {
+      if (!state.dailyCard) return;
+      const d = state.dailyCard;
+      const wbText = state.worldbook.map(w => `【${w.title}】${w.content}`).join("\n");
+      state.isBusy = true; render();
+      try {
+        state.dailyAiText = await callOpenAi([
+          { role: "system", content: state.persona.prompt + "\n世界书资料：\n" + wbText },
+          { role: "user", content: `我今日抽到了「${d.card.roman} ${d.card.nameZh}」（${d.isReversed ? "逆位" : "正位"}）。参考牌义：${d.isReversed ? d.card.meaningRev : d.card.meaningUp}。请给我一份温柔圣洁的今日灵性指引。` }
+        ]);
+      } catch (e) {
+        alert("解析失败：" + e.message);
+      }
+      state.isBusy = false; render();
+    }
+
+    async function aiSuggestSpread() {
+      const q = state.question.trim() || "我想看清近期的整体能量流向";
+      state.isBusy = true; render();
+      try {
+        const listStr = SPREADS.map(s => `${s.id}: ${s.name} (${s.desc})`).join("\n");
+        const reply = await callOpenAi([
+          { role: "system", content: "你是专业塔罗导师。请只返回最合适的一个牌阵 id（必须是 single、time_flow、mind_body_spirit、venus_love、choice 之一），再附带一句简短理由。" },
+          { role: "user", content: `问题：${q}\n可选牌阵：\n${listStr}` }
+        ]);
+        const matched = SPREADS.find(s => reply.includes(s.id));
+        if (matched) state.selectedSpreadId = matched.id;
+        alert("AI 导师推荐：「" + (matched ? matched.name : "圣杯三元") + "」\n" + reply);
+      } catch (e) {
+        alert("推荐失败：" + e.message);
+      }
+      state.isBusy = false; render();
+    }
+
+    function startShufflePhase() {
+      const sp = SPREADS.find(s => s.id === state.selectedSpreadId) || SPREADS[1];
+      if (!state.question.trim()) state.question = "探索此刻生命流动与圣光指引";
+      state.divPhase = "SHUFFLING";
+      state.drawnSlots = Array(sp.count).fill(null);
+      state.spreadAiText = "";
+      render();
+      setTimeout(() => {
+        if (state.divPhase === "SHUFFLING") {
+          state.divPhase = "DRAWING";
+          render();
+        }
+      }, 2200);
+    }
+
+    function drawNextSpreadCard() {
+      const idx = state.drawnSlots.findIndex(x => x === null);
+      if (idx < 0) return;
+      const used = new Set(state.drawnSlots.filter(Boolean).map(x => x.card.id));
+      const pool = state.cards.filter(c => !used.has(c.id));
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      state.drawnSlots[idx] = { card: picked, isReversed: Math.random() < 0.3 };
+      render();
+    }
+
+    async function aiInterpretSpread() {
+      const sp = SPREADS.find(s => s.id === state.selectedSpreadId) || SPREADS[1];
+      const wbText = state.worldbook.map(w => `【${w.title}】${w.content}`).join("\n");
+      const detail = state.drawnSlots.map((slot, i) =>
+        `${i + 1}. ${sp.positions[i]}：${slot.card.nameZh}（${slot.isReversed ? "逆位" : "正位"}）- ${slot.isReversed ? slot.card.meaningRev : slot.card.meaningUp}`
+      ).join("\n");
+      state.isBusy = true; render();
+      try {
+        state.spreadAiText = await callOpenAi([
+          { role: "system", content: state.persona.prompt + "\n世界书资料：\n" + wbText },
+          { role: "user", content: `问卜问题：${state.question}\n牌阵：${sp.name}\n抽牌结果：\n${detail}\n请给出圣洁温暖的深度解析与行动建议。` }
+        ]);
+      } catch (e) {
+        alert("解析失败：" + e.message);
+      }
+      state.isBusy = false; render();
+    }
+
+    function exportSpreadPoster() {
+      const sp = SPREADS.find(s => s.id === state.selectedSpreadId) || SPREADS[1];
+      const canvas = document.createElement("canvas");
+      canvas.width = 900;
+      canvas.height = state.spreadAiText ? 1480 : 1220;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#FBF8F1";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#B88A38";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(24, 24, canvas.width - 48, canvas.height - 48);
+
+      ctx.fillStyle = "#B88A38";
+      ctx.font = "bold 34px serif";
+      ctx.textAlign = "center";
+      ctx.fillText("✦ 圣 光 塔 罗 · 占 卜 圣 卷 ✦", canvas.width / 2, 92);
+
+      ctx.fillStyle = "#2D2745";
+      ctx.font = "24px serif";
+      ctx.fillText(`问题：「${state.question}」`, canvas.width / 2, 150);
+      ctx.font = "20px sans-serif";
+      ctx.fillStyle = "#6A6282";
+      ctx.fillText(`牌阵：${sp.name} · ${new Date().toLocaleDateString()}`, canvas.width / 2, 190);
+
+      ctx.textAlign = "left";
+      let y = 240;
+      state.drawnSlots.forEach((slot, i) => {
+        if (!slot) return;
+        ctx.fillStyle = "#FFFDF9";
+        ctx.fillRect(56, y, canvas.width - 112, 108);
+        ctx.strokeStyle = "#E7D3A3";
+        ctx.strokeRect(56, y, canvas.width - 112, 108);
+        ctx.fillStyle = "#B88A38";
+        ctx.font = "bold 20px serif";
+        ctx.fillText(`${i + 1}. ${sp.positions[i]} — ${slot.card.roman} ${slot.card.nameZh} (${slot.isReversed ? "逆位" : "正位"})`, 80, y + 40);
+        ctx.fillStyle = "#2D2745";
+        ctx.font = "17px sans-serif";
+        ctx.fillText((slot.isReversed ? slot.card.meaningRev : slot.card.meaningUp).slice(0, 44) + "...", 80, y + 78);
+        y += 124;
+      });
+
+      if (state.spreadAiText) {
+        ctx.fillStyle = "#F6EDD8";
+        ctx.fillRect(56, y + 10, canvas.width - 112, 260);
+        ctx.fillStyle = "#B88A38";
+        ctx.font = "bold 20px serif";
+        ctx.fillText("✦ 导师神圣寄语", 80, y + 46);
+        ctx.fillStyle = "#2D2745";
+        ctx.font = "17px sans-serif";
+        const snippet = state.spreadAiText.replace(/\n+/g, " ");
+        for (let row = 0; row < 4; row++) {
+          const line = snippet.slice(row * 40, (row + 1) * 40);
+          if (line) ctx.fillText(line, 80, y + 84 + row * 34);
+        }
+      }
+
+      const link = document.createElement("a");
+      link.download = `圣光塔罗_${Date.now()}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    function renderCard3D(cardObj, isRevealed, compact, slotLabel, onClickJs) {
+      const deckCls = `deck-${state.deckStyle}`;
+      if (!cardObj) {
+        return `
+          <div class="tarot-stage-3d ${deckCls} ${compact ? 'compact' : ''}" onclick="${onClickJs}">
+            <div class="tarot-inner-3d">
+              <div class="tarot-face tarot-back"><span class="tarot-back-caption">${slotLabel || '轻触抽牌'}</span></div>
+            </div>
+          </div>`;
+      }
+      const c = cardObj.card;
+      const rev = cardObj.isReversed;
+      return `
+        <div class="tarot-stage-3d ${deckCls} ${compact ? 'compact' : ''} ${isRevealed ? 'revealed' : ''}" onclick="${onClickJs}">
+          <div class="tarot-inner-3d">
+            <div class="tarot-face tarot-back"><span class="tarot-back-caption">${slotLabel || '轻触启封'}</span></div>
+            <div class="tarot-face tarot-front">
+              <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;">
+                <span>${c.roman}</span><span>${rev ? '逆位' : '正位'}</span>
+              </div>
+              <div class="tarot-front-art ${rev ? 'reversed' : ''}" style="background-image:url('${c.img}')"></div>
+              <div style="text-align:center;font-size:${compact ? '12px' : '15px'};font-weight:600;">${c.nameZh}</div>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function openCardEditor(cardId) {
+      state.editingCardId = cardId;
+      const c = state.cards.find(x => x.id === cardId);
+      if (!c) return;
+      document.getElementById("modal-root").innerHTML = `
+        <div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+          <div class="modal-card">
+            <h3 class="section-title">${c.roman} · ${c.nameZh} (${c.nameEn})</h3>
+            <p class="sub-text">实时编辑或调用 AI 校准牌义数据库，保存后立即影响占卜解牌</p>
+            <label style="font-size:12px;">正位关键词</label>
+            <input id="ed-kw-up" value="${c.kwUp}" />
+            <label style="font-size:12px;">正位详尽牌义</label>
+            <textarea id="ed-m-up" rows="3">${c.meaningUp}</textarea>
+            <label style="font-size:12px;">逆位关键词</label>
+            <input id="ed-kw-rev" value="${c.kwRev}" />
+            <label style="font-size:12px;">逆位详尽牌义</label>
+            <textarea id="ed-m-rev" rows="3">${c.meaningRev}</textarea>
+            <div class="btn-row">
+              <button class="btn btn-outline" onclick="aiRefineCard(${c.id})">✨ AI 实时增补牌义</button>
+              <button class="btn" onclick="saveCardEdit(${c.id})">保存更新</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function closeModal() {
+      document.getElementById("modal-root").innerHTML = "";
+    }
+
+    function saveCardEdit(cardId) {
+      const c = state.cards.find(x => x.id === cardId);
+      if (!c) return;
+      c.kwUp = document.getElementById("ed-kw-up").value;
+      c.meaningUp = document.getElementById("ed-m-up").value;
+      c.kwRev = document.getElementById("ed-kw-rev").value;
+      c.meaningRev = document.getElementById("ed-m-rev").value;
+      saveLocal();
+      closeModal();
+      render();
+    }
+
+    async function aiRefineCard(cardId) {
+      const c = state.cards.find(x => x.id === cardId);
+      if (!c) return;
+      try {
+        const reply = await callOpenAi([
+          { role: "system", content: "你是塔罗数据库学者，请为指定塔罗牌提供精准唯美的正位与逆位深度牌义。只返回 JSON 格式：{\"kwUp\":\"\",\"meaningUp\":\"\",\"kwRev\":\"\",\"meaningRev\":\"\"}" },
+          { role: "user", content: `请精修塔罗牌：${c.nameZh} (${c.nameEn})` }
+        ]);
+        const jsonMatch = reply.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.kwUp) document.getElementById("ed-kw-up").value = parsed.kwUp;
+          if (parsed.meaningUp) document.getElementById("ed-m-up").value = parsed.meaningUp;
+          if (parsed.kwRev) document.getElementById("ed-kw-rev").value = parsed.kwRev;
+          if (parsed.meaningRev) document.getElementById("ed-m-rev").value = parsed.meaningRev;
+        }
+      } catch (e) {
+        alert("AI 更新失败：" + e.message);
+      }
+    }
+
+    function handleWorldbookUpload(input) {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.worldbook.push({ title: file.name, content: String(reader.result || "").slice(0, 6000) });
+        saveLocal();
+        render();
+      };
+      reader.readAsText(file);
+    }
+
+    function addWorldbookEntry() {
+      const title = prompt("输入塔罗世界书章节标题：");
+      if (!title) return;
+      const content = prompt("输入塔罗资料正文内容：");
+      if (!content) return;
+      state.worldbook.push({ title, content });
+      saveLocal();
+      render();
+    }
+
+    function render() {
+      const root = document.getElementById("app");
+      if (state.tab === "sanctuary") {
+        const d = state.dailyCard;
+        root.innerHTML = `
+          <div class="hero-banner">
+            <div class="hero-content">
+              <div style="font-size:12px;color:#F6DF9F;">✦ AURELIA TAROT SANCTUARY</div>
+              <div class="hero-title">圣光塔罗神殿</div>
+              <div style="font-size:13px;opacity:0.9;">静心澄意 · 倾听今日宇宙与灵魂的微光启示</div>
+            </div>
+          </div>
+          <div class="chip-row">
+            ${DECK_STYLES.map(st => `<button class="chip ${state.deckStyle===st.id?'active':''}" onclick="setDeckStyle('${st.id}')">${st.name}</button>`).join("")}
+          </div>
+          <div class="card-box" style="text-align:center;">
+            <h3 class="section-title">每日圣光抽牌 (3D 仪式翻牌)</h3>
+            <p class="sub-text">${d ? '轻触卡面可再次翻转 · 下方查看今日详尽解析' : '轻触下方圣牌开启今日 3D 翻牌仪式'}</p>
+            ${renderCard3D(d, state.dailyRevealed, false, "轻触开启今日圣牌", d ? "state.dailyRevealed=!state.dailyRevealed;render()" : "drawDaily()")}
+            ${d ? `
+              <div style="text-align:left;background:var(--gold-soft);padding:14px;border-radius:16px;margin-top:12px;">
+                <div style="font-weight:600;color:var(--gold);margin-bottom:4px;">${d.card.roman} · ${d.card.nameZh} (${d.isReversed ? '逆位' : '正位'})</div>
+                <div style="font-size:12px;color:var(--text-sub);margin-bottom:6px;">关键词：${d.isReversed ? d.card.kwRev : d.card.kwUp}</div>
+                <div style="font-size:14px;line-height:1.6;">${d.isReversed ? d.card.meaningRev : d.card.meaningUp}</div>
+              </div>
+              ${state.dailyAiText ? `<div style="text-align:left;margin-top:10px;padding:14px;border-radius:16px;border:1px solid var(--gold-light);white-space:pre-wrap;font-size:14px;line-height:1.65;">${state.dailyAiText}</div>` : ''}
+              <div class="btn-row" style="margin-top:12px;">
+                <button class="btn btn-outline" onclick="drawDaily()">重新抽牌</button>
+                <button class="btn" onclick="aiDailyReading()">${state.isBusy ? '解读中...' : '✨ AI 深度解读'}</button>
+              </div>
+            ` : ''}
+          </div>`;
+      } else if (state.tab === "divination") {
+        const sp = SPREADS.find(s => s.id === state.selectedSpreadId) || SPREADS[1];
+        const drawnCount = state.drawnSlots.filter(Boolean).length;
+        const allDrawn = drawnCount === sp.count;
+
+        if (state.divPhase === "SETUP") {
+          root.innerHTML = `
+            <div class="card-box">
+              <h3 class="section-title">第一步：输入问题与选定牌阵</h3>
+              <p class="sub-text">先决定好本次占卜的问题与牌阵，再进入洗牌与抽卡圣殿</p>
+              <textarea rows="2" placeholder="输入你想占卜的问题..." oninput="state.question=this.value">${state.question}</textarea>
+              <button class="btn btn-outline btn-sm" style="margin-bottom:12px;" onclick="aiSuggestSpread()">${state.isBusy ? '分析中...' : '✨ 让 AI 导师帮我选择牌阵'}</button>
+              <div style="display:flex;flex-direction:column;gap:10px;margin:4px 0 12px;">
+                ${SPREADS.map(s => `
+                  <div onclick="state.selectedSpreadId='${s.id}';render()" style="padding:13px;border-radius:16px;cursor:pointer;border:${s.id===sp.id?'2px solid var(--gold)':'1px solid var(--gold-light)'};background:${s.id===sp.id?'var(--gold-soft)':'var(--surface)'}">
+                    <div style="display:flex;justify-content:space-between;font-weight:600;">
+                      <span>${s.name}</span><span style="color:var(--gold);font-size:12px;">${s.count} 张牌</span>
+                    </div>
+                    <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">${s.desc}（${s.positions.join(' · ')}）</div>
+                  </div>
+                `).join("")}
+              </div>
+              <button class="btn" style="width:100%;" onclick="startShufflePhase()">选定「${sp.name}」· 进入洗牌与抽卡界面</button>
+            </div>`;
+        } else if (state.divPhase === "SHUFFLING") {
+          root.innerHTML = `
+            <div class="card-box" style="text-align:center;">
+              <h3 class="section-title">圣殿星璇洗牌仪式进行中...</h3>
+              <p class="sub-text">正在为问题「${state.question}」涤净并洗入正逆位天机</p>
+              <div class="shuffle-arena">
+                <div class="shuffle-card" style="animation-delay:0s;"></div>
+                <div class="shuffle-card" style="animation-delay:0.25s;"></div>
+                <div class="shuffle-card" style="animation-delay:0.5s;"></div>
+              </div>
+              <button class="btn" onclick="state.divPhase='DRAWING';render()">完成洗牌 · 立即开始抽牌</button>
+            </div>`;
+        } else {
+          root.innerHTML = `
+            <div class="card-box">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <button class="btn btn-outline btn-sm" onclick="state.divPhase='SETUP';render()">← 重选牌阵</button>
+                <button class="btn btn-outline btn-sm" onclick="startShufflePhase()">重新洗牌</button>
+              </div>
+              <div style="font-size:13px;color:var(--text-sub);">问卜：「${state.question}」 · 牌阵：${sp.name} (${drawnCount}/${sp.count})</div>
+              ${!allDrawn ? `
+                <div style="margin-top:12px;text-align:center;">
+                  <div style="font-weight:600;color:var(--gold);font-size:14px;">左右滑动星轨牌扇 · 点击任意卡牌抽出第 ${drawnCount + 1}/${sp.count} 张（${sp.positions[drawnCount]}）</div>
+                  <div class="fan-container">
+                    ${Array.from({length: 18}).map((_, i) => `<div class="fan-card" onclick="drawNextSpreadCard()" title="抽取圣牌 #${i+1}"></div>`).join("")}
+                  </div>
+                </div>
+              ` : ''}
+              <div class="spread-slots-grid" style="margin-top:12px;">
+                ${sp.positions.map((posTitle, i) => `
+                  <div style="text-align:center;">
+                    ${renderCard3D(state.drawnSlots[i], Boolean(state.drawnSlots[i]), true, `${i+1}. ${posTitle}`, "drawNextSpreadCard()")}
+                    <div style="font-size:12px;font-weight:600;">${i+1}. ${posTitle}</div>
+                  </div>
+                `).join("")}
+              </div>
+              ${allDrawn ? `
+                <div class="btn-row" style="margin-top:16px;">
+                  <button class="btn" onclick="aiInterpretSpread()">${state.isBusy ? '导师解析中...' : '✨ AI 导师深度解析'}</button>
+                  <button class="btn btn-outline" onclick="exportSpreadPoster()">🖼️ 保存携问题长图</button>
+                </div>
+              ` : ''}
+              ${state.spreadAiText ? `<div style="margin-top:14px;padding:14px;border-radius:16px;background:var(--gold-soft);white-space:pre-wrap;font-size:14px;line-height:1.65;">${state.spreadAiText}</div>` : ''}
+            </div>`;
+        }
+      } else if (state.tab === "mentor") {
+        root.innerHTML = `
+          <div class="card-box">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <img src="assets/img_mentor_seraphina.jpg" class="avatar-circle" alt="Mentor" />
+              <div style="flex:1;">
+                <h3 class="section-title" style="margin:0;">${state.persona.name}</h3>
+                <div style="font-size:12px;color:var(--text-sub);">自动挂载 ${state.worldbook.length} 份世界书 · 支持人设卡</div>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="togglePersonaEditor()">人设卡</button>
+            </div>
+            <div id="persona-editor" style="display:none;background:var(--bg);padding:12px;border-radius:14px;margin-bottom:10px;border:1px solid var(--gold-light);">
+              <label style="font-size:12px;">导师称谓</label>
+              <input value="${state.persona.name}" oninput="state.persona.name=this.value" />
+              <label style="font-size:12px;">人设提示词 (System Prompt)</label>
+              <textarea rows="3" oninput="state.persona.prompt=this.value">${state.persona.prompt}</textarea>
+              <button class="btn btn-sm" onclick="saveLocal();togglePersonaEditor();render()">保存人设卡</button>
+            </div>
+            <div style="max-height:360px;overflow-y:auto;padding:8px 0;">
+              ${state.chatMessages.map(m => `<div class="chat-bubble ${m.role==='user'?'chat-user':'chat-ai'}">${m.content}</div>`).join("")}
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <input id="chat-in" placeholder="向塔罗导师倾诉你的困惑..." style="margin:0;" onkeydown="if(event.key==='Enter')sendChat()" />
+              <button class="btn" onclick="sendChat()">发送</button>
+            </div>
+          </div>`;
+      } else if (state.tab === "codex") {
+        const filtered = state.cards.filter(c => c.suit === state.codexSuit);
+        root.innerHTML = `
+          <div class="card-box">
+            <h3 class="section-title">唯美卡面全集 (78张) & 牌义数据库</h3>
+            <p class="sub-text">点击任意卡牌即可查看或调用 AI 实时更新牌义数据库</p>
+            <div class="chip-row">
+              <button class="chip ${state.codexSuit==='MAJOR'?'active':''}" onclick="state.codexSuit='MAJOR';render()">大阿卡那 (22)</button>
+              <button class="chip ${state.codexSuit==='WANDS'?'active':''}" onclick="state.codexSuit='WANDS';render()">权杖 (14)</button>
+              <button class="chip ${state.codexSuit==='CUPS'?'active':''}" onclick="state.codexSuit='CUPS';render()">圣杯 (14)</button>
+              <button class="chip ${state.codexSuit==='SWORDS'?'active':''}" onclick="state.codexSuit='SWORDS';render()">宝剑 (14)</button>
+              <button class="chip ${state.codexSuit==='PENTACLES'?'active':''}" onclick="state.codexSuit='PENTACLES';render()">星币 (14)</button>
+            </div>
+            <div class="gallery-grid">
+              ${filtered.map(c => `
+                <div style="text-align:center;">
+                  ${renderCard3D({card: c, isReversed: false}, true, true, c.nameZh, `openCardEditor(${c.id})`)}
+                  <div style="font-size:11px;color:var(--text-sub);">${c.roman} · ${c.nameZh}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          <div class="card-box">
+            <h3 class="section-title">塔罗世界书资料库 (${state.worldbook.length})</h3>
+            <p class="sub-text">上传 .txt / .md / .json 资料文件或手动录入，AI 解牌与导师聊天会自动引用</p>
+            <div class="btn-row" style="margin-bottom:12px;">
+              <label class="btn btn-outline" style="cursor:pointer;">
+                📄 上传文件<input type="file" accept=".txt,.md,.json,.csv" style="display:none;" onchange="handleWorldbookUpload(this)" />
+              </label>
+              <button class="btn" onclick="addWorldbookEntry()">＋ 手动录入资料</button>
+            </div>
+            ${state.worldbook.map((w, i) => `
+              <div style="padding:11px;border-radius:14px;border:1px solid var(--gold-light);margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;font-weight:600;color:var(--gold);font-size:13px;">
+                  <span>${w.title}</span>
+                  <button class="btn btn-outline btn-sm" onclick="state.worldbook.splice(${i},1);saveLocal();render()">删除</button>
+                </div>
+                <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">${w.content.slice(0, 120)}${w.content.length>120?'...':''}</div>
+              </div>
+            `).join("")}
+          </div>`;
+      } else if (state.tab === "settings") {
+        root.innerHTML = `
+          <div class="card-box">
+            <h3 class="section-title">OpenAI 格式接口设置</h3>
+            <p class="sub-text">填写 Base URL、API Key 与 Model Name，点击保存即刻生效</p>
+            <label style="font-size:12px;">Base URL</label>
+            <input value="${state.api.baseUrl}" oninput="state.api.baseUrl=this.value" placeholder="https://api.openai.com/v1" />
+            <label style="font-size:12px;">API Key</label>
+            <input type="password" value="${state.api.apiKey}" oninput="state.api.apiKey=this.value" placeholder="sk-..." />
+            <label style="font-size:12px;">Model Name</label>
+            <input value="${state.api.modelName}" oninput="state.api.modelName=this.value" placeholder="gpt-4o-mini" />
+            ${state.api.models.length ? `
+              <div class="chip-row">
+                ${state.api.models.slice(0, 20).map(m => `<button class="chip ${state.api.modelName===m?'active':''}" onclick="state.api.modelName='${m}';render()">${m}</button>`).join("")}
+              </div>
+            ` : ''}
+            <div class="btn-row" style="margin-bottom:10px;">
+              <button class="btn btn-outline" onclick="fetchModelsWeb()">拉取模型</button>
+              <button class="btn btn-outline" onclick="testConnWeb()">测试连接</button>
+            </div>
+            <button class="btn" style="width:100%;" onclick="saveLocal();alert('设置已保存生效！')">保存生效</button>
+            ${state.api.statusMsg ? `<div style="margin-top:10px;font-size:13px;color:var(--gold);">${state.api.statusMsg}</div>` : ''}
+          </div>
+          <div class="card-box">
+            <h3 class="section-title">当前卡面画风</h3>
+            <div class="chip-row">
+              ${DECK_STYLES.map(st => `<button class="chip ${state.deckStyle===st.id?'active':''}" onclick="setDeckStyle('${st.id}')">${st.name}</button>`).join("")}
+            </div>
+          </div>`;
+      }
+    }
+
+    function togglePersonaEditor() {
+      const el = document.getElementById("persona-editor");
+      if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+    }
+
+    async function sendChat() {
+      const input = document.getElementById("chat-in");
+      const text = (input?.value || "").trim();
+      if (!text) return;
+      state.chatMessages.push({ role: "user", content: text });
+      input.value = "";
+      render();
+      try {
+        const wbText = state.worldbook.map(w => `【${w.title}】${w.content}`).join("\n");
+        const reply = await callOpenAi([
+          { role: "system", content: state.persona.prompt + "\n世界书资料：\n" + wbText },
+          ...state.chatMessages.slice(-10)
+        ]);
+        state.chatMessages.push({ role: "assistant", content: reply });
+      } catch (e) {
+        state.chatMessages.push({ role: "assistant", content: "连接提示：" + e.message });
+      }
+      render();
+    }
+
+    async function fetchModelsWeb() {
+      try {
+        const res = await fetch(normalizeBaseUrl(state.api.baseUrl) + "/models", {
+          headers: state.api.apiKey ? { "Authorization": "Bearer " + state.api.apiKey.trim() } : {}
+        });
+        const data = await res.json();
+        const ids = (data.data || []).map(x => x.id);
+        if (ids.length) {
+          state.api.models = ids;
+          state.api.modelName = ids[0];
+          state.api.statusMsg = `成功拉取 ${ids.length} 个模型，已自动填入 ${ids[0]}`;
+        } else {
+          state.api.statusMsg = "接口返回模型列表为空";
+        }
+      } catch (e) {
+        state.api.statusMsg = "拉取失败：" + e.message;
+      }
+      saveLocal(); render();
+    }
+
+    async function testConnWeb() {
+      try {
+        const t0 = Date.now();
+        const reply = await callOpenAi([{ role: "user", content: "请回复：圣光连接成功" }]);
+        state.api.statusMsg = `连接成功 (${Date.now() - t0}ms)：${reply}`;
+      } catch (e) {
+        state.api.statusMsg = "测试失败：" + e.message;
+      }
+      saveLocal(); render();
+    }
+
+    render();
+  </script>
+</body>
+</html>
