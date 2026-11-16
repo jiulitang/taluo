@@ -619,6 +619,7 @@
       const picked = pool[Math.floor(Math.random() * pool.length)];
       state.drawnSlots[idx] = { card: picked, isReversed: Math.random() < 0.3 };
       render();
+      document.querySelectorAll(".spread-slots-grid .tarot-stage-3d")[idx]?.classList.add("reveal-once");
     }
 
     async function aiInterpretSpread() {
@@ -892,7 +893,7 @@
                 <div style="margin-top:12px;text-align:center;">
                   <div style="font-weight:600;color:var(--gold);font-size:14px;">左右滑动星轨牌扇 · 点击任意卡牌抽出第 ${drawnCount + 1}/${sp.count} 张（${sp.positions[drawnCount]}）</div>
                   <div class="fan-container">
-                    ${Array.from({length: 18}).map((_, i) => `<div class="fan-card" onclick="drawNextSpreadCard()" title="抽取圣牌 #${i+1}"></div>`).join("")}
+                    ${Array.from({length: 18}).map((_, i) => `<div class="fan-card" role="button" tabindex="0" aria-label="抽取圣牌 ${i+1}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}" onclick="drawNextSpreadCard()" title="抽取圣牌 #${i+1}"></div>`).join("")}
                   </div>
                 </div>
               ` : ''}
